@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "EthWalletDecryptor": {
+      "commandName": "Project",
+      "commandLineArgs": "file itestdata\\keystore.json --path itestdata\\passwords.txt --parallelism 8"
+    }
+  }
+}

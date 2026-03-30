@@ -1,0 +1,51 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.4.11620.152
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EthWalletDecryptor", "EthWalletDecryptor\EthWalletDecryptor.csproj", "{999F8375-810E-49C2-87B1-8EAB7000B783}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EthWalletDecryptor.Tests", "EthWalletDecryptor.Tests\EthWalletDecryptor.Tests.csproj", "{89E01BF4-C18A-452E-AAB9-3D41D86A21D8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{999F8375-810E-49C2-87B1-8EAB7000B783}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{999F8375-810E-49C2-87B1-8EAB7000B783}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{999F8375-810E-49C2-87B1-8EAB7000B783}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{999F8375-810E-49C2-87B1-8EAB7000B783}.Debug|x64.Build.0 = Debug|Any CPU
+		{999F8375-810E-49C2-87B1-8EAB7000B783}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{999F8375-810E-49C2-87B1-8EAB7000B783}.Debug|x86.Build.0 = Debug|Any CPU
+		{999F8375-810E-49C2-87B1-8EAB7000B783}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{999F8375-810E-49C2-87B1-8EAB7000B783}.Release|Any CPU.Build.0 = Release|Any CPU
+		{999F8375-810E-49C2-87B1-8EAB7000B783}.Release|x64.ActiveCfg = Release|Any CPU
+		{999F8375-810E-49C2-87B1-8EAB7000B783}.Release|x64.Build.0 = Release|Any CPU
+		{999F8375-810E-49C2-87B1-8EAB7000B783}.Release|x86.ActiveCfg = Release|Any CPU
+		{999F8375-810E-49C2-87B1-8EAB7000B783}.Release|x86.Build.0 = Release|Any CPU
+		{89E01BF4-C18A-452E-AAB9-3D41D86A21D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89E01BF4-C18A-452E-AAB9-3D41D86A21D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89E01BF4-C18A-452E-AAB9-3D41D86A21D8}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{89E01BF4-C18A-452E-AAB9-3D41D86A21D8}.Debug|x64.Build.0 = Debug|Any CPU
+		{89E01BF4-C18A-452E-AAB9-3D41D86A21D8}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{89E01BF4-C18A-452E-AAB9-3D41D86A21D8}.Debug|x86.Build.0 = Debug|Any CPU
+		{89E01BF4-C18A-452E-AAB9-3D41D86A21D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89E01BF4-C18A-452E-AAB9-3D41D86A21D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{89E01BF4-C18A-452E-AAB9-3D41D86A21D8}.Release|x64.ActiveCfg = Release|Any CPU
+		{89E01BF4-C18A-452E-AAB9-3D41D86A21D8}.Release|x64.Build.0 = Release|Any CPU
+		{89E01BF4-C18A-452E-AAB9-3D41D86A21D8}.Release|x86.ActiveCfg = Release|Any CPU
+		{89E01BF4-C18A-452E-AAB9-3D41D86A21D8}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DE3BADF4-74FF-4C48-B1A1-D36069477250}
+	EndGlobalSection
+EndGlobal
