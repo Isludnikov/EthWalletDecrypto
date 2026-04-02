@@ -1,6 +1,5 @@
 using Scrypt.Bouncy;
 using Scrypt.CryptSharp;
-using Scrypt.Scrypt;
 using Scrypt.ScryptGpu;
 using System.Diagnostics;
 using System.Text;
@@ -23,7 +22,7 @@ public class Program
         const int p = 16;
         const int dkLen = 64;
 
-        var handlers = new HashSet<ScryptGenerator> { SCrypt.Generate, ScryptBouncy.Generate, SCryptCryptSharp.Generate, ScryptILGPU.Generate };
+        var handlers = new HashSet<ScryptGenerator> { ScryptBouncy.Generate, SCryptCryptSharp.Generate, ScryptILGPU.Generate };
         foreach (var handler in handlers)
         {
             var methodName = $"{handler.Method.DeclaringType?.Name}.{handler.Method.Name}";

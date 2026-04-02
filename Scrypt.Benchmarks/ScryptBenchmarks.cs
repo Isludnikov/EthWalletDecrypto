@@ -1,9 +1,6 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Configs;
-using BenchmarkDotNet.Jobs;
 using Scrypt.Bouncy;
 using Scrypt.CryptSharp;
-using Scrypt.Scrypt;
 using Scrypt.ScryptGpu;
 
 namespace Scrypt.Benchmarks;
@@ -18,7 +15,7 @@ public class ScryptBenchmarks
     [Params(1, 4, 16)]
     public int P { get; set; }
 
-    public int R => 8;
+    private static int R => 8;
 
     private byte[] _password = null!;
     private byte[] _salt = null!;
@@ -32,10 +29,6 @@ public class ScryptBenchmarks
         _salt = "The quick brown fox jumps over the lazy dog"u8.ToArray();
     }
 
-    [Benchmark(Baseline = true)]
-    public byte[] SCrypt_Generate()
-        => SCrypt.Generate(_password, _salt, N, R, P, DkLen);
-
     [Benchmark]
     public byte[] ScryptBouncy_Generate()
         => ScryptBouncy.Generate(_password, _salt, N, R, P, DkLen);
@@ -47,13 +40,4 @@ public class ScryptBenchmarks
     [Benchmark]
     public byte[] SCryptILGPU_Generate()
         => ScryptILGPU.Generate(_password, _salt, N, R, P, DkLen, true);
-}
-
-internal class BenchmarkConfig : ManualConfig
-{
-    public BenchmarkConfig() => AddJob(Job.Default
-            .WithWarmupCount(1)
-            .WithIterationCount(5)
-            .WithInvocationCount(1)
-            .WithUnrollFactor(1));
 }

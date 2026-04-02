@@ -16,6 +16,13 @@ public static class ScryptILGPU
     private static Accelerator? _accelerator;
     private static bool initFailed;
 
+    // Cached kernel and V buffer — both are reused across calls to avoid per-call
+    // JIT compilation overhead and the cost of allocating/freeing gigabytes of GPU
+    // memory on every invocation. V buffer grows when a larger batch requires it.
+    private static Action<Index1D, ArrayView<uint>, ArrayView<uint>, ArrayView<uint>, ArrayView<uint>, int, int>? _kernel;
+    private static MemoryBuffer1D<uint, Stride1D.Dense>? _vBuffer;
+    private static long _vBufferCapacity;
+
     private static bool Init()
     {
         if (_accelerator != null)
@@ -120,33 +127,107 @@ public static class ScryptILGPU
         var B = ToUInt32Le(B_bytes);
 
         // Step 2: GPU — run p independent ScryptROMix blocks in parallel.
-        // If the GPU fails (e.g. TDR watchdog on Windows for large N), transparently
-        // retry on ILGPU's CPU backend. B is always unchanged after a GPU exception.
-        B = RunRoMix(_accelerator!, B, N, r, p, blockLen);
+        B = RunRoMixInternal(_accelerator!, B, N, r, p, blockLen, p);
         // Step 3: PBKDF2 on CPU to derive final key
         B_bytes = FromUInt32Le(B);
         return Rfc2898DeriveBytes.Pbkdf2(P, B_bytes, 1, HashAlgorithmName.SHA256, dkLen);
     }
 
-    private static uint[] RunRoMix(Accelerator acc, uint[] B, int N, int r, int p, int blockLen)
+    /// <summary>
+    /// Derives keys for multiple (password, salt) pairs in a single GPU dispatch.
+    /// All entries must share the same N, r, p, dkLen.
+    /// Automatically chunks the batch to fit GPU memory.
+    /// </summary>
+    public static byte[][] GenerateBatch(
+        IReadOnlyList<(byte[] P, byte[] S)> inputs,
+        int N, int r, int p, int dkLen)
     {
-        using var dB = acc.Allocate1D<uint>(p * blockLen);
-        using var dV = acc.Allocate1D<uint>((long)p * N * blockLen);
-        using var dXScratch = acc.Allocate1D<uint>(p * 16);
-        using var dResScratch = acc.Allocate1D<uint>(p * blockLen);
+        ArgumentNullException.ThrowIfNull(inputs);
+        if (inputs.Count == 0) return [];
+        if (N <= 1 || (N & (N - 1)) != 0)
+            throw new ArgumentException("N must be a power of 2 greater than 1.", nameof(N));
+        if (!Init())
+            throw new SystemException("GPU malfunction");
+
+        var batchSize = inputs.Count;
+        var blockLen = 32 * r;
+        var pBlockUints = p * blockLen;          // uints per entry in B
+        var pBlockBytes = pBlockUints * 4;        // bytes per entry in B
+
+        // Step 1: Parallel PBKDF2 for all inputs → flat B array
+        var allB = new uint[batchSize * pBlockUints];
+        Parallel.For(0, batchSize, i =>
+        {
+            var bBytes = Rfc2898DeriveBytes.Pbkdf2(inputs[i].P, inputs[i].S, 1, HashAlgorithmName.SHA256, pBlockBytes);
+            var b = ToUInt32Le(bBytes);
+            Array.Copy(b, 0L, allB, (long)i * pBlockUints, pBlockUints);
+        });
+
+        // Step 2: GPU RoMix in memory-aware chunks.
+        // V dominates GPU memory: bytesPerEntry = p * N * blockLen * 4.
+        var bytesPerEntry = (long)p * N * blockLen * 4;
+        var maxChunk = Math.Max(1, (int)(_accelerator!.MemorySize * 8 / 10 / bytesPerEntry));
+
+        for (var start = 0; start < batchSize; start += maxChunk)
+        {
+            var count = Math.Min(maxChunk, batchSize - start);
+            var totalThreads = count * p;
+            var bOffset = (long)start * pBlockUints;
+            var chunkUints = totalThreads * blockLen;
+
+            var chunk = new uint[chunkUints];
+            Array.Copy(allB, bOffset, chunk, 0L, chunkUints);
+            chunk = RunRoMixInternal(_accelerator!, chunk, N, r, p, blockLen, totalThreads);
+            Array.Copy(chunk, 0L, allB, bOffset, chunkUints);
+        }
+
+        // Step 3: Parallel final PBKDF2 for all outputs
+        var allBBytes = FromUInt32Le(allB);
+        var results = new byte[batchSize][];
+        Parallel.For(0, batchSize, i =>
+        {
+            var bSlice = allBBytes.AsSpan(i * pBlockBytes, pBlockBytes).ToArray();
+            results[i] = Rfc2898DeriveBytes.Pbkdf2(inputs[i].P, bSlice, 1, HashAlgorithmName.SHA256, dkLen);
+        });
+
+        return results;
+    }
+
+    // totalThreads = batchSize * p for batch calls, or just p for single calls.
+    private static uint[] RunRoMixInternal(Accelerator acc, uint[] B, int N, int r, int p, int blockLen, int totalThreads)
+    {
+        // Cache the compiled kernel — ILGPU's JIT compilation is expensive and the
+        // compiled kernel handles all N/r values (they're runtime parameters, not
+        // generic type args), so one compile covers every scrypt configuration.
+        lock (InitLock)
+        {
+            _kernel ??= acc.LoadAutoGroupedStreamKernel<
+                Index1D,
+                ArrayView<uint>,
+                ArrayView<uint>,
+                ArrayView<uint>,
+                ArrayView<uint>,
+                int,
+                int>(ScryptROMixKernel);
+
+            // V dominates GPU memory. Cache the buffer and grow only when the current
+            // batch requires more capacity than the previous largest call.
+            long vSize = (long)totalThreads * N * blockLen;
+            if (_vBuffer == null || _vBufferCapacity < vSize)
+            {
+                _vBuffer?.Dispose();
+                _vBuffer = acc.Allocate1D<uint>(vSize);
+                _vBufferCapacity = vSize;
+            }
+        }
+
+        using var dB = acc.Allocate1D<uint>((long)totalThreads * blockLen);
+        using var dXScratch = acc.Allocate1D<uint>((long)totalThreads * 16);
+        using var dResScratch = acc.Allocate1D<uint>((long)totalThreads * blockLen);
 
         dB.CopyFromCPU(B);
 
-        var kernel = acc.LoadAutoGroupedStreamKernel<
-            Index1D,
-            ArrayView<uint>,
-            ArrayView<uint>,
-            ArrayView<uint>,
-            ArrayView<uint>,
-            int,
-            int>(ScryptROMixKernel);
-
-        kernel(p, dB.View, dV.View, dXScratch.View, dResScratch.View, N, r);
+        _kernel!(totalThreads, dB.View, _vBuffer!.View, dXScratch.View, dResScratch.View, N, r);
         acc.Synchronize();
 
         return dB.GetAsArray1D();
