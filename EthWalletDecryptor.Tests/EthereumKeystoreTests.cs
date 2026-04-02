@@ -1,18 +1,16 @@
+using EthWalletDecryptor.Utils;
 using System.Security.Cryptography;
 using System.Text.Json;
-using EthWalletDecryptor.Utils;
 
 namespace EthWalletDecryptor.Tests;
 
 public class EthereumKeystoreTests
 {
-    private static readonly byte[] TestKey = Convert.FromHexString(
-        "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef");
+    private static readonly byte[] TestKey = Convert.FromHexString("1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef");
 
     // n=4, r=1, p=1 — minimal scrypt params for fast unit tests
-    private static KeystoreFile FastEncrypt(byte[] key, string password,
-        byte[]? salt = null, byte[]? iv = null) =>
-        EthereumKeystore.Encrypt(key, password, n: 4, r: 1, p: 1, salt: salt, iv: iv);
+    private static KeystoreFile FastEncrypt(byte[] key, string password, byte[]? salt = null, byte[]? iv = null)
+        => EthereumKeystore.Encrypt(key, password, n: 4, r: 1, p: 1, salt: salt, iv: iv);
 
     // ── Round-trip ───────────────────────────────────────────────────────────
 
